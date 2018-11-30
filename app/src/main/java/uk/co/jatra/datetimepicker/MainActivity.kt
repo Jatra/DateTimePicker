@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.LinearSnapHelper
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.RecyclerView.SCROLL_STATE_IDLE
 import android.view.LayoutInflater
@@ -12,6 +13,8 @@ import android.view.ViewGroup
 import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_main.*
 import org.joda.time.LocalDate
+import org.joda.time.LocalTime
+
 
 fun timeString(count: Int) : String {
     val hour = if ((count / 2) == 12) 12 else ((count / 2) % 12)
@@ -33,6 +36,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        val now = LocalTime.now()
+        val hourOfDay = now.hourOfDay
+        val minOfHour = now.minuteOfHour
+        val initialTimeSelection = hourOfDay*2 + (if (minOfHour > 30) 1 else 0)
+
         date.adapter = DateAdapter(this)
         time.adapter = TimeAdapter(this)
         val dateLayoutManager = LinearLayoutManager(this)
@@ -43,7 +51,7 @@ class MainActivity : AppCompatActivity() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
                 if (newState == SCROLL_STATE_IDLE) {
-                    selectedDate.text = dateString(dateLayoutManager.findFirstCompletelyVisibleItemPosition())
+                    selectedDate.text = dateString(dateLayoutManager.findFirstCompletelyVisibleItemPosition()-1)
                 }
             }
         })
@@ -51,16 +59,27 @@ class MainActivity : AppCompatActivity() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
                 if (newState == SCROLL_STATE_IDLE) {
-                    selectedTime.text = timeString(timeLayoutManager.findFirstCompletelyVisibleItemPosition())
+                    selectedTime.text = timeString(timeLayoutManager.findFirstCompletelyVisibleItemPosition()-1)
                 }
             }
         })
+        val timeSnapHelper = LinearSnapHelper()
+        val dateSnapHelper = LinearSnapHelper()
+        timeSnapHelper.attachToRecyclerView(time)
+        dateSnapHelper.attachToRecyclerView(date)
+
+        time.scrollToPosition(initialTimeSelection+1)
     }
 
     class TimeAdapter(val context: Context) : RecyclerView.Adapter<TimeAdapter.TimeViewHolder>() {
 
         override fun onBindViewHolder(viewHolder: TimeViewHolder, position: Int) {
-            viewHolder.textView.text = timeString(position)
+            if (position == 0 || position == 49) {
+                viewHolder.textView.text = ""
+            }
+            else {
+                viewHolder.textView.text = timeString(position-1)
+            }
         }
 
         override fun onCreateViewHolder(p0: ViewGroup, p1: Int): TimeViewHolder {
@@ -68,7 +87,7 @@ class MainActivity : AppCompatActivity() {
             return TimeViewHolder(view)
         }
 
-        override fun getItemCount() = 48
+        override fun getItemCount() = 48 + 2 //top and bottom
 
         class TimeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             val textView = itemView.findViewById<TextView>(R.id.textView)
@@ -80,7 +99,12 @@ class MainActivity : AppCompatActivity() {
 
 
         override fun onBindViewHolder(viewHolder: DateAdapter.DateViewHolder, position: Int) {
-            viewHolder.textView.text = dateString(position)
+            if (position == 0 ) {
+                viewHolder.textView.text = ""
+            }
+            else {
+                viewHolder.textView.text = dateString(position-1)
+            }
         }
 
         override fun onCreateViewHolder(p0: ViewGroup, p1: Int): DateAdapter.DateViewHolder {
